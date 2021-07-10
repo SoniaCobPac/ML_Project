@@ -1,0 +1,6 @@
+model,parameters,loss,rmse,accuracy
+LSTM,"1 epoch, loss=categorical_crossentropy, optimizer=rmsprop",3.464369773864746,0.14620770514011383,0.09693877398967743
+LSTM,"100 epoch, loss=categorical_crossentropy, optimizer=rmsprop",3.464369773864746,0.14620770514011383,0.09693877398967743
+Bidirectional LSTM,"1 epoch, loss=categorical_crossentropy, optimizer=rmsprop",3.9122066497802734,0.14000055193901062,0.020408162847161293
+Bidirectional LSTM,"100 epoch, loss=categorical_crossentropy, optimizer=rmsprop",3.9122066497802734,0.14000055193901062,0.020408162847161293
+Baseline GAN,"1 epoch, loss=binary_crossentropy, optimizer=adam",,,">Accuracy real: 91%, fake: 0%"
