@@ -5,6 +5,8 @@ import pandas as pd
 import webbrowser
 from PIL import Image
 import requests
+import json 
+from sqlalchemy import create_engine
 
 
 sep = os.sep
@@ -19,6 +21,8 @@ route(2)
 
 import utils.visualization_tb as vis
 import utils.mining_data_tb as md
+from utils.folders_tb import read_json
+from utils.sql_tb import MySQL
 
 sep = os.sep
 
@@ -36,20 +40,21 @@ def menu_welcome(path, imag):
         point where a machine, that cannot experience these feelings, can generate music.")
     st.write("This project will explain and show how music has been generated using a differente types of neural networks in Python.")
 
+    # clean garbage
+    import gc
+    gc.collect()
 
-def menu_visualization(path1, filename):
+def menu_visualization(path1, filename, path3):
     st.set_option('deprecation.showPyplotGlobalUse', False)
     df = pd.read_csv(path1 + sep + filename)
     pieces = [elem for elem in df["Piece"]]
    
     song = st.selectbox("Choose a piece", pieces)
 
-    #df = df[df["Piece"] == song]
     data_piece = df["Piece"]
     data_notes = df["Notes"]
-    d = dict((note, number) for number, note in enumerate(pieces))  
 
-    st.pyplot(vis.plot_one_song(data_notes, data_piece, d[song]))
+    st.pyplot(vis.plot_song_streamlit(data_notes, data_piece, song+".mid", path3))
 
 
 def menu_dataframe(path1, filename):
@@ -58,65 +63,70 @@ def menu_dataframe(path1, filename):
     print(st.dataframe(df_writed))
 
 
-def menu_prediction(path1, path2):
-
+def menu_prediction(file1, file11, file5, file6, file7, file8, file9, file10):
     st.set_option('deprecation.showPyplotGlobalUse', False)
-    st.write("If you wish to make a prediction from a music file, please upload it here.\nThe file must be a MIDI format")
-    st.sidebar.subheader("Upload a MIDI file")
+    tests = st.sidebar.selectbox(" ",
+        options=["First trial", "LSTM Model", "Play Time"])
 
-    
-    if gases == "All":
-        all_pol = pd.read_csv(path1 + sep + filename)
-        st.pyplot(vis.pollutant_evolution_all(all_pol, "YEAR", "VALUE", "POLLUTANT", "POLLUTANT", "GASES"))
+    if tests == "First trial":
+        audio_file1 = open(file1, 'rb')
+        audio_bytes1 = audio_file1.read()
+        st.title("Generated melodies")
+        st.write("Some tests have been done with different MIDI files and neural networks.")
+        st.write(" ")
+        st.write("The first test was done with the piece Prelude (1890) by Albeniz:")
+        st.audio(audio_bytes1, format='wav')
+        st.write("The generated sound from this piece was the following (Please bear in mind this was the first test, enjoy!):")
+        audio_file11 = open(file11, 'rb')
+        audio_bytes11 = audio_file11.read()
+        st.audio(audio_bytes11, format='wav')
 
-    elif gases == "PM10":
-        pm10 = pd.read_csv(path1 + sep + filename5)
-        st.pyplot(vis.pollutant_evolution_one(pm10, "PM10"))
-        image5 = Image.open(path2 + sep + imag5)
-        st.image (image5,use_column_width=True)
+    elif tests == "LSTM Model":
+        st.title("Generated melodies")
+        st.write("The following audio was predicted with a LSTM model, 10 epoch, 50 songs")
+        audio_file5 = open(file5, 'rb')
+        audio_bytes5 = audio_file5.read()
+        st.audio(audio_bytes5, format='wav') 
+        st.write("The following audio was predicted with a LSTM model, 1 epoch, 50 songs")
+        audio_file6 = open(file6, 'rb')
+        audio_bytes6 = audio_file6.read()
+        st.audio(audio_bytes6, format='wav')
+        st.write("The following audio was predicted with a LSTM model, 100 epoch, 1 song")
+        audio_file7 = open(file7, 'rb')
+        audio_bytes7 = audio_file7.read()
+        st.audio(audio_bytes7, format='wav')
 
-def menu_temperature_graphs(path, imag1, imag2, imag3, imag4, imag5, imag6, imag7):
+    elif tests == "Play Time":
+        st.title("Generated melodies")
+        st.write("Though the models have been trained to predict classical music from one instrument, they were also tested with more variety of songs.")
+        st.write("The following audio was predicted using Never Gonna Give you Up")
+        audio_file8 = open(file8, 'rb')
+        audio_bytes8 = audio_file8.read()
+        st.audio(audio_bytes8, format='wav')
+        st.write("The following audio was predicted using Guns and Roses: Sweet Child of Mine")
+        audio_file9 = open(file9, 'rb')
+        audio_bytes9 = audio_file9.read()
+        st.audio(audio_bytes9, format='wav')
+        st.write("The following audio was predicted using the theme song Naruto")
+        audio_file10 = open(file10, 'rb')
+        audio_bytes10 = audio_file10.read()
+        st.audio(audio_bytes10, format='wav')
 
-    st.set_option('deprecation.showPyplotGlobalUse', False)
-    st.sidebar.subheader("Years:")
-    years = st.sidebar.selectbox("Choose a year:", options=["All", "2014", "2015", "2016", "2017", "2018", "2019"])
-    
-    if years == "All": 
-        image1 = Image.open(path + sep + imag1)
-        st.image (image1,use_column_width=True)
-
-    elif years == "2014":
-        image2 = Image.open(path + sep + imag2)
-        st.image (image2,use_column_width=True)
-
-    elif years == "2015":
-        image3 = Image.open(path + sep + imag3)
-        st.image (image3,use_column_width=True)
-
-    elif years == "2016":
-        image4 = Image.open(path + sep + imag4)
-        st.image (image4,use_column_width=True)
-
-    elif years == "2017":
-        image5 = Image.open(path + sep + imag5)
-        st.image (image5,use_column_width=True)
-
-    elif years == "2018":
-        image6 = Image.open(path + sep + imag6)
-        st.image (image6,use_column_width=True)
-
-    elif years == "2019":
-        image7 = Image.open(path + sep + imag7)
-        st.image (image7,use_column_width=True)
 
         
-def menu_correlation(path, imag):
-    image = Image.open(path + sep + imag)
-    st.image(image,use_column_width=True)  
-    st.write("Correlation between pollutants (represented as value in the above figure) \
-        and temperature does not exist. The only correlation shown in the graph is between the \
-        temperature of different years. However, these aren't two variables we can relate.")
+def menu_model_from_sql():
+    json_readed = read_json(route(2) + os.sep + "api" + os.sep , "sql_setting.json")
+    mysql_db = MySQL(json_readed["IP_DNS"], json_readed["USER"], json_readed["PASSWORD"], json_readed["BD_NAME"], json_readed["PORT"])
+    # Connection to database
+    mysql_db.connect()
+    db_connection_str = mysql_db.SQL_ALCHEMY
+    db_connection = create_engine(db_connection_str)
+    
+    select_sql = """SELECT * FROM model_comparison"""
+    select_result = mysql_db.execute_get_sql(sql=select_sql)
+    col = ["INDEX", "MODEL", "PARAMETERS", "LOSS", "RMSE", "ACCURACY"]
+    df = pd.DataFrame(select_result, columns=[col])
+    df = df.iloc[: , 1:]
+    st.write("Accurary and evaluation comparison of neural networks used in this project and their parameters.")
+    st.write(df)
 
-def menu_datajson(url): 
-    resp = requests.get(url).json()
-    st.write(resp)

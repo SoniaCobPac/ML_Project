@@ -1,0 +1,23 @@
+
+{ "project_name" : "Generating Music with Artificial Intelligence",
+
+    "author": "Sonia Cobo Pacios",
+
+    "linkedin": "www.linkedin.com/in/sonia-cobo",
+
+    "email": "soniacobo7@hotmail.com",
+
+    "project_title": "Generating Music with Artificial Intelligence",
+
+    "project_description": "This project's aim is to generate new melodies from MIDI files considering \
+    differente types of neural networks. \
+    The chosen neural networks are two Long Short-Term Memory (LSTM) models (a Bidirectional and \
+    a Unidirectional network) and a Generative adversarial network (GAN) considering different layers and parameters. \
+    These neural networks are then compared to determine which one has generated the 'best' melody.",
+
+    "flask_port": 6060,
+
+    "streamlit_port": 6060,
+
+    "links": "" 
+}

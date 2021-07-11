@@ -15,19 +15,24 @@ import sys
 
 # ml model
 import pickle
+import tensorflow as tf
 
 # EDA
 
 sep = os.sep
 
-def route (steps):
+def route (steps, option=1):
     """
     This function appends the route of the file to the sys path
     to be able to import files from/to other foders.
 
     Param: Steps (int) to go up to the required folder
     """
-    route = os.getcwd()
+    if option == 1:
+        route = os.getcwd()
+    elif option == 2:
+        route = os.path.dirname(os.path.abspath(__file__))
+
     for i in range(steps):
         route = os.path.dirname(route)
     sys.path.append(route)
@@ -48,7 +53,7 @@ def info_midi(path, filename):
     return components
 
 
-def transpose_key(path, path_1):
+def transpose_key(path, path_1, name):
     """
     This function converts MIDI file of any kety to C major or A minor key.
 
@@ -61,7 +66,7 @@ def transpose_key(path, path_1):
     minors = dict([("G#", 1), ("A-", 1),("A", 0),("A#", -1),("B-", -1),("B", -2),("C", -3),("C#", -4),("D-", -4),("D", -5),("D#", 6),("E-", 6),("E", 5),("F", 4),("F#", 3),("G-", 3),("G", 2)])       
 
     # os.chdir("./")
-    for file in glob.glob(path + "*.mid"):
+    for file in glob.glob(path + f"{name}.mid"):
         score = music21.converter.parse(file)
         key = score.analyze('key')
         
@@ -76,7 +81,7 @@ def transpose_key(path, path_1):
         key = newscore.analyze("key")
 
         #print(key.tonic.name, key.mode)
-        newFileName = "C_" + file[61:]
+        newFileName = f"{name}.mid"
         newscore.write("midi", path_1 + newFileName)
 
 
@@ -122,6 +127,15 @@ def get_all_notes(path, save_name, save_path):
         all_notes += output
         
     return all_notes
+
+
+def save_elem (save_path, save_name, list_to_save):
+    """
+    This function saves a list for its later use.
+    Param: Path where the list will be saved, its name and the list itself.
+    """
+    with open(save_path + save_name, "wb") as filepath:
+        pickle.dump(list_to_save, filepath)
 
 
 def load_notes (path, filename):
@@ -183,19 +197,18 @@ def read_dataframe(path, filename):
 
 # PREPROCESSING
 
-def prepare_sequences(notes, min_note_occurence, sequence_length, step):
+def prepare_sequences(pitchnames, notes, min_note_occurence, sequence_length, step):
     """ 
     This function creates the input and output sequences used by the neural network.
     It returns the x and y of the model.
 
     Param: 
-        Note: List containing all notes, rests and chords
+        Pitchnames: List containing all notes, rests and chords
+        Note: List of the input piece containing notes, rests and chords
         Sequence_length: Lenght of notes given to the model to help predict the next
         Step: Step (int) between one input sequence and the next one
     """
-    # get all pitchnames
-    pitchnames = sorted(set(notes))
-
+ 
     # Calculate occurence
     note_occ = {}
     for elem in notes:
@@ -223,27 +236,28 @@ def prepare_sequences(notes, min_note_occurence, sequence_length, step):
     y = np.zeros((len(network_input), len(pitchnames)))
     # exchange note values for their integer-code
     for i, sequence in enumerate(network_input):
-        for j, note in enumerate(sequence):
-            x[i, j, note_to_int[note]] = 1
-        y[i, note_to_int[network_output[i]]] = 1
+        try:
+            for j, note in enumerate(sequence):
+                x[i, j, note_to_int[note]] = 1
+            y[i, note_to_int[network_output[i]]] = 1
+        except:
+            continue
 
     return x, y
 
 # Generate notes function is slightly different for GAN models
-def prepare_sequences_gan(notes, min_note_occurence, sequence_length, step):
+def prepare_sequences_gan(pitchnames, notes, min_note_occurence, sequence_length, step):
     """ 
     This function creates the input and output sequences used by the neural network.
     It returns the x and y of the model.
 
     Param: 
-        Note: List containing all notes, rests and chords
+        Pitchnames: List containing all notes, rests and chords
+        Note: List of the provided piece containing all notes, rests and chords
         Sequence_length: Lenght of notes given to the model to help predict the next
         Step: Step (int) between one input sequence and the next one
     """
-    # get all pitchnames
-    pitchnames = sorted(set(notes))
-
-    # Calculate occurence
+     # Calculate occurence
     note_occ = {}
     for elem in notes:
         note_occ[elem] = note_occ.get(elem, 0) + 1
@@ -267,9 +281,12 @@ def prepare_sequences_gan(notes, min_note_occurence, sequence_length, step):
     x = np.zeros((len(network_input), sequence_length, len(pitchnames)))
     y = np.zeros((len(network_input), sequence_length, len(pitchnames)))
     for i, sequence in enumerate(network_input):
-        for j, note in enumerate(sequence):
-            x[i, j, note_to_int[note]] = 1
-            y[i, j, note_to_int[network_output[i][j]]] = 1
+        try:
+            for j, note in enumerate(sequence):
+                x[i, j, note_to_int[note]] = 1
+                y[i, j, note_to_int[network_output[i][j]]] = 1
+        except:
+            continue
 
     return x, y
 
@@ -293,29 +310,30 @@ def sample(preds, temperature=1.0):
     return np.argmax(probas)
 
 
-def generate_notes(notes, model, temperature=1.0):
+def generate_notes(pitchnames, notes, model, sequence_length, temperature=1.0):
     """ 
     Generate notes from the neural network based on a sequence of notes
 
     Param: 
-        Notes: List containing notes
+        Piece: List containing all notes
+        Notes: List of the provided piece containing notes
         Model: Neural network
         Temperature: int to control prediction randomness 
+
     """
     # pick a random sequence from the input as a starting point for the prediction
-    start = np.random.randint(0, len(notes)-100-1)
+    start = np.random.randint(0, len(notes)-sequence_length-1)
 
-    pitchnames = sorted(set(notes))
     note_to_int = dict((note, number) for number, note in enumerate(pitchnames)) 
     int_to_note = dict((number, note) for number, note in enumerate(pitchnames))
     
-    pattern = notes[start: (start+100)] 
+    pattern = notes[start: (start + sequence_length)] 
     prediction_output = []
     patterns = []
 
     # generate 500 notes, roughly two minutes of music
     for note_index in range(100):
-        prediction_input = np.zeros((1, 100, len(pitchnames)))
+        prediction_input = np.zeros((1, sequence_length, len(pitchnames)))
         for j, note in enumerate(pattern):
             prediction_input[0, j, note_to_int[note]] = 1.0
         preds = model.predict(prediction_input, verbose=0)[0] 
@@ -329,52 +347,51 @@ def generate_notes(notes, model, temperature=1.0):
         prediction_output.append(next_note)
 
         patterns.append(next_index)
-        #patterns = patterns[1:len(patterns)]
-
+  
     return prediction_output, patterns
 
 # Generate notes function is slightly different for GAN models
-def generate_notes_gan(notes, model, temperature=1.0):
+def generate_notes_gan(pitchnames, notes, model, sequence_length, temperature=1.0):
     """ 
     Generate notes from the GAN network based on a sequence of notes 
     """
     # pick a random sequence from the input as a starting point for the prediction
-    start = np.random.randint(0, len(notes)-100-1)
+    start = np.random.randint(0, len(notes)-sequence_length-1)
 
-    pitchnames = sorted(set(notes))
     note_to_int = dict((note, number) for number, note in enumerate(pitchnames)) 
     int_to_note = dict((number, note) for number, note in enumerate(pitchnames))
     
-    pattern = notes[start: (start+100)] 
+    pattern = notes[start: (start + sequence_length)] 
     prediction_output = []
     patterns = []
 
     # generate 500 notes, roughly two minutes of music
 
-    prediction_input = np.zeros((1, 100, len(pitchnames)))
+    prediction_input = np.zeros((1, sequence_length, len(pitchnames)))
     for j, note in enumerate(pattern):
         prediction_input[0, j, note_to_int[note]] = 1.0
     preds = model.predict(prediction_input, verbose=0)[0]  
 
     for elem in list(preds):
-        next_index = md.sample(elem, temperature=temperature)
+        next_index = sample(elem, temperature=temperature)
         next_note = int_to_note[next_index]
-        #pattern = pattern[1:]
-        #pattern.append(next_note)
+    
         prediction_output.append(next_note)
 
         patterns.append(next_index)
-        #patterns = patterns[1:len(patterns)]
 
     return prediction_output, patterns
 
 # GAN
-def generate_real_samples(x, n_samples):
+def generate_real_samples(x, n_samples,sequence_length):
     """
-    Load and prepare training notes
+    Prepare random real training samples
+    Params:
+        x: Network input
+        n_samples: Number of samples
     """
     # choose random instances
-    start = np.random.randint(0, len(x)-100-1)
+    start = np.random.randint(0, len(x)-sequence_length-1)
     # retrieve selected images
     x_real = x[start: (start+n_samples)] 
     # generate 'real' class labels (1)
@@ -384,6 +401,12 @@ def generate_real_samples(x, n_samples):
 
 
 def generate_latent_points(x, n_samples):
+    """
+    Create random input for the generator model
+    Params:
+        x: Network input
+        n_samples: Number of samples
+    """
     import random
     # create random matrix of numbers 
     x_latent = np.zeros((n_samples, x.shape[1], x.shape[2]))
@@ -399,15 +422,22 @@ def generate_latent_points(x, n_samples):
 
 
 def generate_fake_data(x, g_model, n_samples):
-	# create 'fake' class labels (0)
-	y_fake = np.zeros((n_samples, 1))
+    """
+    Prepare fake samples
+    Params:
+        x: Network input
+        g_model: Generator model
+        n_samples: Number of samples
+    """
+    # create 'fake' class labels (0)
+    y_fake = np.zeros((n_samples, 1))
 
-	# generate points in latent space
-	x_latent = generate_latent_points(x, n_samples)
-	# predict outputs
-	x_fake = g_model.predict(x_latent, verbose=0)
+    # generate points in latent space
+    x_latent = generate_latent_points(x, n_samples)
+    # predict outputs
+    x_fake = g_model.predict(x_latent, verbose=0)
 
-	return x_fake, y_fake
+    return x_fake, y_fake
 
     
 def gen_midi(prediction_output, path, filename):
@@ -484,15 +514,60 @@ def play_music(path_filename):
             else:
                 break
 
-def prediction_process(notes, model, path, filename, path_filename, temperature=1.0):
+
+def process_and_execute(p1, p2, p3, p4, p5, p6, name, output_name):
     """
-    Full function to predict and reproduce a MIDI file
+    This functions is the combination of all pre-processing, modeling and post-procssing functions used in the project 
+    so given a MIDI file this one function will return its prediction and play it in Jupyter.
+    
     """
-    prediction_output, patterns= generate_notes(notes, model, temperature)
+    transpose_key(p3, p1, name)
+    note_list = get_notes_per_song(p3, f"{name}.mid", p6, save_name="pred_list")
+    print(len(note_list))
+    #x, y = md.prepare_sequences(pitchnames=pitchnames, notes=note_list, min_note_occurence=1, sequence_length=70, step=3)
+    model = tf.keras.models.load_model(p2 + "baseline_lstm_1epoch_1song_2.h5")
+    prediction_output, patterns = generate_notes(p4, notes=note_list, model=model, temperature=1.0, sequence_length=70)
+    gen_midi(prediction_output, p5, f"{output_name}.mid")
+    play_music(p5 + f"{output_name}.mid")
 
-    midi_stream = gen_midi(prediction_output, path, filename)
-    play_music(path_filename)
 
-    print(f" Predicted notes: {prediction_output}")
+# To check errors
+if __name__ == "__main__":
+    sep = os.sep
+    # path to raw data
+    path = route(2, option=2) + sep + "data" + sep + "raw_data" + sep
+    # path to data in the right key
+    path_1 = route(2, option=2) + sep + "data" + sep + "converted_data" + sep
+    # path to compiled notes list
+    path_2 = route(2, option=2) + sep + "data" + sep + "notes" + sep
+    # path to generated models
+    path_3 = route(2, option=2) + sep + "models" + sep
+    # path to generated midi files
+    path_4 = route(2, option=2) + sep + "reports" + sep
+    # path to output information
+    path_5 = route(2, option=2) + sep + "data" + sep + "output" + sep
+    # path to other songs
+    path_6 = route(2, option=2) + sep + "data" + sep + "more_inst_data" + sep
+    # path to resources
+    path_7 = route(2, option=2) + sep + "resources" + sep
 
+    pitchnames = load_notes(path_2, "pitchnames")
 
+    def process_and_execute(name, output_name):
+        """
+        This functions is the combination of all pre-processing, modeling and post-procssing functions used in the project 
+        so given a MIDI file this one function will return its prediction and play it in Jupyter.
+
+        Params: Name of the input MIDI file and name of the predicted MIDI file so it will be saved.
+
+        """
+        transpose_key(path=path_6, path_1=path_1, name=name)
+        note_list = get_notes_per_song(path=path_6, filename=f"{name}.mid", save_path=path_2, save_name="pred_list")
+        print(len(note_list))
+        #x, y = md.prepare_sequences(pitchnames=pitchnames, notes=note_list, min_note_occurence=1, sequence_length=70, step=3)
+        model = tf.keras.models.load_model(path_3 + "baseline_lstm_1epoch_1song_2.h5")
+        prediction_output, patterns = generate_notes(pitchnames=pitchnames, notes=note_list, model=model, temperature=1.0, sequence_length=100)
+        gen_midi(prediction_output, path=path_4, filename=f"{output_name}.mid")
+        play_music(path_4 + f"{output_name}.mid")
+
+    process_and_execute(name="Naruto - sadness and sorrow", output_name="Naruto")

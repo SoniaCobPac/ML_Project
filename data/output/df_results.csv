@@ -1,6 +1,6 @@
 model,parameters,loss,rmse,accuracy
-LSTM,"1 epoch, loss=categorical_crossentropy, optimizer=rmsprop",3.464369773864746,0.14620770514011383,0.09693877398967743
-LSTM,"100 epoch, loss=categorical_crossentropy, optimizer=rmsprop",3.464369773864746,0.14620770514011383,0.09693877398967743
-Bidirectional LSTM,"1 epoch, loss=categorical_crossentropy, optimizer=rmsprop",3.9122066497802734,0.14000055193901062,0.020408162847161293
-Bidirectional LSTM,"100 epoch, loss=categorical_crossentropy, optimizer=rmsprop",3.9122066497802734,0.14000055193901062,0.020408162847161293
-Baseline GAN,"1 epoch, loss=binary_crossentropy, optimizer=adam",,,">Accuracy real: 91%, fake: 0%"
+LSTM,"1 epoch, loss=categorical_crossentropy, optimizer=rmsprop",4.53609561920166,0.05437275394797325,0.02722323127090931
+Bidirectional LSTM,"1 epoch, loss=categorical_crossentropy, optimizer=rmsprop",4.369243144989014,0.054192595183849335,0.11433757096529007
+LSTM Upgraded,"1 epoch, loss=categorical_crossentropy, optimizer=rmsprop",4.704911231994629,0.05454393848776817,0.018148820847272873
+Baseline GAN,"1 epoch, loss=binary_crossentropy, optimizer=adam",,,">Accuracy real: 94%, fake: 100%"
+Leaky GAN,"1 epoch, loss=binary_crossentropy, optimizer=adam",,,">Accuracy real: 100%, fake: 100%"
