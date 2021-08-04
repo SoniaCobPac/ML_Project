@@ -27,12 +27,16 @@ Relevant information is extracted from MIDI files and codificated for its used a
 ### Modeling:
 Five models were review for the project:
     - Unidirectional Long Short-Term Memory
+    
     - Unidirectional Long Short-Term Memory with different parameters and layers
+    
     - Bidirectional Long Short-Term Memory
+    
     - GAN (LSTM)
+    
     - GAN (LeakyRelu)
 
-The notebook 'main' explains these processing in more detail.
+The notebook 'main' within the folder 'src' explains these processing in more detail.
 
 ### Post-processing:
 The predicted output was decodified and saved back into a MIDI format.
