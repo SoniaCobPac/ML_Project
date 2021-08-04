@@ -26,6 +26,7 @@ Relevant information is extracted from MIDI files and codificated for its used a
 
 ### Modeling:
 Five models were review for the project:
+
     - Unidirectional Long Short-Term Memory
     
     - Unidirectional Long Short-Term Memory with different parameters and layers
